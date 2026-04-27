@@ -3,6 +3,8 @@ from importlib.metadata import version
 import typer
 from typer import Typer
 
+from pier.cli.jobs import jobs_app, start
+
 
 def version_callback(value: bool) -> None:
     if value:
@@ -20,6 +22,10 @@ def main(
     ),
 ) -> None:
     pass
+
+
+app.add_typer(jobs_app, name="job", help="Manage jobs.")
+app.command(name="run", help="Start a job.")(start)
 
 
 if __name__ == "__main__":
