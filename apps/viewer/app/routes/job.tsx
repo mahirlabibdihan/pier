@@ -5,7 +5,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import type { ColumnDef, SortingState, VisibilityState } from "@tanstack/react-table";
-import { FileText, Search, Trash2, Upload, X } from "lucide-react";
+import { FileText, Search, Trash2, X } from "lucide-react";
 import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -75,10 +75,7 @@ import {
   fetchJobSummary,
   fetchTaskFilters,
   fetchTasks,
-  fetchUploadStatus,
   summarizeJob,
-  uploadJob,
-  type UploadVisibility,
 } from "~/lib/api";
 import { useDebouncedValue, useKeyboardTableNavigation } from "~/lib/hooks";
 import type { TaskSummary } from "~/lib/types";
@@ -670,50 +667,6 @@ export default function Job() {
     }
   };
 
-  // Query Supabase via the viewer backend to show a Hub URL for jobs that were
-  // already uploaded before the upload entry point was hidden.
-  const { data: uploadStatus } = useQuery({
-    queryKey: ["upload-status", jobName],
-    queryFn: () => fetchUploadStatus(jobName!),
-    enabled: !!jobName,
-    retry: false,
-  });
-
-  // Modal confirms the visibility choice before the upload fires. Opened
-  // by clicking the Upload button; the dialog-triggered mutation is what
-  // actually calls the API.
-  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
-
-  const uploadMutation = useMutation({
-    mutationFn: (visibility: UploadVisibility) =>
-      uploadJob(jobName!, visibility),
-    onSuccess: async (data) => {
-      setUploadDialogOpen(false);
-      queryClient.invalidateQueries({ queryKey: ["upload-status", jobName] });
-      let copied = false;
-      try {
-        await navigator.clipboard.writeText(data.view_url);
-        copied = true;
-      } catch {
-        // Upload succeeded; clipboard access can fail independently.
-      }
-      const parts = [`Uploaded ${data.n_trials_uploaded}`];
-      if (data.n_trials_skipped) {
-        parts.push(`skipped ${data.n_trials_skipped}`);
-      }
-      if (data.n_trials_failed) {
-        parts.push(`failed ${data.n_trials_failed}`);
-      }
-      toast.success(
-        `${parts.join(", ")} trial(s)${copied ? " — link copied" : ""}`,
-        copied ? undefined : { description: data.view_url }
-      );
-    },
-    onError: (error) => {
-      toast.error("Failed to upload job", { description: error.message });
-    },
-  });
-
   if (!jobLoading && !job) {
     return (
       <div className="px-4 py-10">
@@ -792,91 +745,6 @@ export default function Job() {
           </div>
           <div className="flex flex-col justify-between items-start xl:items-end gap-6">
             <div className="flex items-center gap-2">
-              <Dialog
-                open={uploadDialogOpen}
-                onOpenChange={(open) => {
-                  // Don't let the user close the modal mid-upload — the
-                  // request can't be cancelled and closing would orphan the
-                  // pending mutation's UI state.
-                  if (!open && uploadMutation.isPending) return;
-                  setUploadDialogOpen(open);
-                }}
-              >
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    {/* span wrapper keeps the tooltip alive while the button
-                      is disabled (disabled buttons don't receive hover) */}
-                    <span className="inline-flex">
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="secondary"
-                          disabled={
-                            uploadMutation.isPending ||
-                            uploadStatus?.status === "in_progress" ||
-                            uploadStatus?.status === "unauthenticated" ||
-                            uploadStatus?.status === "unknown"
-                          }
-                        >
-                          <Upload className="h-4 w-4" />
-                          {uploadMutation.isPending ? (
-                            <LoadingDots text="Uploading" />
-                          ) : uploadStatus?.status === "uploaded" ? (
-                            "Re-upload"
-                          ) : (
-                            "Upload"
-                          )}
-                        </Button>
-                      </DialogTrigger>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {uploadStatus?.status === "unauthenticated"
-                      ? "Run `pier auth login` in your terminal to upload jobs"
-                      : uploadStatus?.status === "in_progress"
-                        ? "Job has not finished yet"
-                        : uploadStatus?.status === "unavailable"
-                          ? "Pier Hub is unreachable; upload may still work"
-                          : uploadStatus?.status === "unknown"
-                            ? "Could not read this job's upload status"
-                            : "Share jobs or store for later on Pier Hub"}
-                  </TooltipContent>
-                </Tooltip>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Upload to Pier Hub</DialogTitle>
-                    <DialogDescription>
-                      Private means only you can see this job. Public means
-                      anyone with the link can see its config, trials, and
-                      trajectories. You can change visibility later.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <DialogFooter className="gap-2 sm:gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => uploadMutation.mutate("private")}
-                      disabled={uploadMutation.isPending}
-                    >
-                      {uploadMutation.isPending &&
-                      uploadMutation.variables === "private" ? (
-                        <LoadingDots text="Uploading" />
-                      ) : (
-                        "Upload private"
-                      )}
-                    </Button>
-                    <Button
-                      onClick={() => uploadMutation.mutate("public")}
-                      disabled={uploadMutation.isPending}
-                    >
-                      {uploadMutation.isPending &&
-                      uploadMutation.variables === "public" ? (
-                        <LoadingDots text="Uploading" />
-                      ) : (
-                        "Upload public"
-                      )}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
               <Button
                 variant={isDeleting ? "destructive" : "secondary"}
                 onClick={handleDelete}
@@ -930,9 +798,9 @@ export default function Job() {
             })}
           </div>
         )}
-        {(job?.job_uri || uploadStatus?.view_url) && (
+        {job?.job_uri && (
           <div className="mt-4 space-y-1 text-xs text-muted-foreground">
-            {job?.job_uri && (() => {
+            {(() => {
               const localPath = job.job_uri.startsWith("file://")
                 ? job.job_uri.slice(7)
                 : job.job_uri;
@@ -950,26 +818,6 @@ export default function Job() {
                 </div>
               );
             })()}
-            {uploadStatus?.view_url && (
-              <div className="flex items-baseline gap-3 min-w-0">
-                <span className="shrink-0 w-14 text-[10px] font-medium uppercase tracking-wide">
-                  Platform
-                </span>
-                <a
-                  href={uploadStatus.view_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-foreground hover:underline truncate"
-                >
-                  {uploadStatus.view_url}
-                </a>
-                <CopyButton
-                  value={uploadStatus.view_url}
-                  iconClassName="size-3"
-                  className="shrink-0 self-center text-muted-foreground hover:text-foreground"
-                />
-              </div>
-            )}
           </div>
         )}
       </div>
