@@ -193,6 +193,12 @@ function formatTokens(n: number | null): string {
   return Math.round(n).toLocaleString();
 }
 
+function formatCount(n: number | null): string {
+  if (n === null) return "-";
+  const value = Number.isInteger(n) ? n.toString() : n.toFixed(1);
+  return value.replace(/\.0$/, "");
+}
+
 function formatCostUSD(cost: number | null): string {
   if (cost === null) return "-";
   return `$${cost.toFixed(2)}`;
@@ -326,6 +332,21 @@ const columns: ColumnDef<TaskSummary>[] = [
         return <div className="text-right text-muted-foreground">-</div>;
       }
       return <div className="text-right tabular-nums">{formatCostUSD(cost)}</div>;
+    },
+  },
+  {
+    accessorKey: "avg_agent_steps",
+    header: ({ column }) => (
+      <div className="text-right">
+        <SortableHeader column={column}>Agent Steps</SortableHeader>
+      </div>
+    ),
+    cell: ({ row }) => {
+      const value = row.original.avg_agent_steps;
+      if (value === null) {
+        return <div className="text-right text-muted-foreground">-</div>;
+      }
+      return <div className="text-right tabular-nums">{formatCount(value)}</div>;
     },
   },
   {
@@ -509,6 +530,7 @@ export default function Job() {
     { value: "n_trials", label: "Trials" },
     { value: "n_errors", label: "Errors" },
     { value: "avg_cost_usd", label: "Cost USD" },
+    { value: "avg_agent_steps", label: "Agent Steps" },
     { value: "avg_duration_ms", label: "Avg Duration" },
     { value: "exception_types", label: "Exceptions" },
     { value: "avg_input_tokens", label: "Uncached Input Tokens" },

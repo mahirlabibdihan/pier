@@ -147,6 +147,21 @@ const columns: ColumnDef<TrialSummary>[] = [
     },
   },
   {
+    accessorKey: "agent_steps",
+    header: ({ column }) => (
+      <div className="text-right">
+        <SortableHeader column={column}>Agent Steps</SortableHeader>
+      </div>
+    ),
+    cell: ({ row }) => {
+      const value = row.original.agent_steps;
+      if (value === null) {
+        return <div className="text-right text-muted-foreground">-</div>;
+      }
+      return <div className="text-right tabular-nums">{formatTokens(value)}</div>;
+    },
+  },
+  {
     accessorKey: "input_tokens",
     header: ({ column }) => (
       <div className="text-right">

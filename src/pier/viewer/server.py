@@ -77,6 +77,8 @@ class TaskGroupStats(TypedDict):
     cost_usd_count: int
     total_peak_context_tokens: int
     peak_context_tokens_count: int
+    total_agent_steps: int
+    agent_steps_count: int
 
 
 def _uncached_input(n_input: int | None, n_cache: int | None) -> int | None:
@@ -90,6 +92,26 @@ def _uncached_input(n_input: int | None, n_cache: int | None) -> int | None:
     if n_cache is None:
         return n_input
     return max(0, n_input - n_cache)
+
+
+def _agent_step_count_from_trajectory(trial_dir: Path) -> int | None:
+    trajectory_path = trial_dir / "agent" / "trajectory.json"
+    if not trajectory_path.exists():
+        return None
+    try:
+        trajectory = json.loads(trajectory_path.read_text())
+    except (OSError, json.JSONDecodeError):
+        return None
+
+    total = 0
+    found_steps = False
+    for step in trajectory.get("steps") or []:
+        if not isinstance(step, dict):
+            continue
+        found_steps = True
+        if step.get("source") == "agent":
+            total += 1
+    return total if found_steps else None
 
 
 # Maximum file size to serve (1MB)
@@ -598,6 +620,14 @@ def _register_job_endpoints(app: FastAPI, jobs_dir: Path) -> None:
                     environment_type = config.environment.type.value
 
             if result:
+                total_agent_steps: int | None = None
+                for trial_name in scanner.list_trials(name):
+                    agent_steps = _agent_step_count_from_trajectory(
+                        scanner.jobs_dir / name / trial_name
+                    )
+                    if agent_steps is not None:
+                        total_agent_steps = (total_agent_steps or 0) + agent_steps
+
                 # Extract evals from stats
                 evals = {
                     key: EvalSummary(metrics=eval_stats.metrics)
@@ -626,6 +656,7 @@ def _register_job_endpoints(app: FastAPI, jobs_dir: Path) -> None:
                         total_cached_input_tokens=result.stats.n_cache_tokens,
                         total_output_tokens=result.stats.n_output_tokens,
                         total_cost_usd=result.stats.cost_usd,
+                        total_agent_steps=total_agent_steps,
                     )
                 )
             else:
@@ -1066,6 +1097,8 @@ def _register_job_endpoints(app: FastAPI, jobs_dir: Path) -> None:
                     "cost_usd_count": 0,
                     "total_peak_context_tokens": 0,
                     "peak_context_tokens_count": 0,
+                    "total_agent_steps": 0,
+                    "agent_steps_count": 0,
                 }
 
             groups[key]["n_trials"] += 1
@@ -1116,6 +1149,13 @@ def _register_job_endpoints(app: FastAPI, jobs_dir: Path) -> None:
                 )
                 groups[key]["peak_context_tokens_count"] += 1
 
+            agent_steps = _agent_step_count_from_trajectory(
+                scanner.jobs_dir / job_name / name
+            )
+            if agent_steps is not None:
+                groups[key]["total_agent_steps"] += agent_steps
+                groups[key]["agent_steps_count"] += 1
+
         # Convert to TaskSummary list
         summaries = []
         for (
@@ -1161,6 +1201,11 @@ def _register_job_endpoints(app: FastAPI, jobs_dir: Path) -> None:
                 if stats["peak_context_tokens_count"] > 0
                 else None
             )
+            avg_agent_steps = (
+                stats["total_agent_steps"] / stats["agent_steps_count"]
+                if stats["agent_steps_count"] > 0
+                else None
+            )
 
             summaries.append(
                 TaskSummary(
@@ -1180,6 +1225,7 @@ def _register_job_endpoints(app: FastAPI, jobs_dir: Path) -> None:
                     avg_output_tokens=avg_output_tokens,
                     avg_cost_usd=avg_cost_usd,
                     avg_peak_context_tokens=avg_peak_context_tokens,
+                    avg_agent_steps=avg_agent_steps,
                 )
             )
 
@@ -1243,7 +1289,7 @@ def _register_job_endpoints(app: FastAPI, jobs_dir: Path) -> None:
         task: list[str] = Query(default=[], description="Filter by task names"),
         sort_by: str | None = Query(
             default=None,
-            description="Field to sort by (task_name, agent_name, model_provider, model_name, source, n_trials, n_errors, avg_duration_ms, avg_reward, avg_input_tokens, avg_cached_input_tokens, avg_output_tokens, avg_cost_usd)",
+            description="Field to sort by (task_name, agent_name, model_provider, model_name, source, n_trials, n_errors, avg_duration_ms, avg_reward, avg_input_tokens, avg_cached_input_tokens, avg_output_tokens, avg_cost_usd, avg_agent_steps)",
         ),
         sort_order: str = Query(default="asc", description="Sort order (asc or desc)"),
     ) -> PaginatedResponse[TaskSummary]:
@@ -1341,6 +1387,11 @@ def _register_job_endpoints(app: FastAPI, jobs_dir: Path) -> None:
                     key=lambda s: (s.avg_cost_usd is None, s.avg_cost_usd or 0),
                     reverse=reverse,
                 )
+            elif sort_by == "avg_agent_steps":
+                summaries.sort(
+                    key=lambda s: (s.avg_agent_steps is None, s.avg_agent_steps or 0),
+                    reverse=reverse,
+                )
 
         # Paginate
         total = len(summaries)
@@ -1429,6 +1480,9 @@ def _register_job_endpoints(app: FastAPI, jobs_dir: Path) -> None:
                 if result.agent_result is not None
                 else None
             )
+            agent_steps = _agent_step_count_from_trajectory(
+                scanner.jobs_dir / job_name / name
+            )
 
             all_summaries.append(
                 TrialSummary(
@@ -1452,6 +1506,7 @@ def _register_job_endpoints(app: FastAPI, jobs_dir: Path) -> None:
                     output_tokens=n_output,
                     cost_usd=cost,
                     peak_context_tokens=peak_context_tokens,
+                    agent_steps=agent_steps,
                 )
             )
 

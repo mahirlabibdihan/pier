@@ -29,6 +29,7 @@ export interface JobSummary {
   total_cached_input_tokens: number | null;
   total_output_tokens: number | null;
   total_cost_usd: number | null;
+  total_agent_steps: number | null;
 }
 
 export interface AgentDatasetStats {
@@ -74,6 +75,7 @@ export interface TaskSummary {
   avg_output_tokens: number | null;
   avg_cost_usd: number | null;
   avg_peak_context_tokens: number | null;
+  avg_agent_steps: number | null;
 }
 
 export interface TrialSummary {
@@ -93,6 +95,7 @@ export interface TrialSummary {
   output_tokens: number | null;
   cost_usd: number | null;
   peak_context_tokens: number | null;
+  agent_steps: number | null;
 }
 
 export interface TimingInfo {

@@ -66,6 +66,11 @@ function formatTokens(n: number | null): string {
   return Math.round(n).toLocaleString();
 }
 
+function formatCount(n: number | null): string {
+  if (n === null) return "-";
+  return Math.round(n).toLocaleString();
+}
+
 function formatCostUSD(cost: number | null): string {
   if (cost === null) return "-";
   return `$${cost.toFixed(2)}`;
@@ -374,6 +379,29 @@ const columns: ColumnDef<JobSummary>[] = [
     },
   },
   {
+    accessorKey: "total_agent_steps",
+    header: ({ column }) => (
+      <div className="text-right">
+        <SortableHeader column={column}>Agent Steps</SortableHeader>
+      </div>
+    ),
+    sortingFn: (a, b) => {
+      const aVal = a.original.total_agent_steps;
+      const bVal = b.original.total_agent_steps;
+      if (aVal === null && bVal === null) return 0;
+      if (aVal === null) return 1;
+      if (bVal === null) return -1;
+      return aVal - bVal;
+    },
+    cell: ({ row }) => {
+      const value = row.original.total_agent_steps;
+      if (value === null) {
+        return <div className="text-right text-muted-foreground">-</div>;
+      }
+      return <div className="text-right tabular-nums">{formatCount(value)}</div>;
+    },
+  },
+  {
     id: "duration",
     header: ({ column }) => (
       <SortableHeader column={column}>Duration</SortableHeader>
@@ -548,6 +576,7 @@ export default function Home() {
     { value: "environment_type", label: "Environment" },
     { value: "started_at", label: "Started" },
     { value: "total_cost_usd", label: "Cost USD" },
+    { value: "total_agent_steps", label: "Agent Steps" },
     { value: "duration", label: "Duration" },
     { value: "n_total_trials", label: "Trials" },
     { value: "n_errored_trials", label: "Errors" },

@@ -46,6 +46,7 @@ class JobSummary(BaseModel):
     total_cached_input_tokens: int | None = None
     total_output_tokens: int | None = None
     total_cost_usd: float | None = None
+    total_agent_steps: int | None = None
 
 
 class TaskSummary(BaseModel):
@@ -67,6 +68,7 @@ class TaskSummary(BaseModel):
     avg_output_tokens: float | None = None
     avg_cost_usd: float | None = None
     avg_peak_context_tokens: float | None = None
+    avg_agent_steps: float | None = None
 
 
 class TrialSummary(BaseModel):
@@ -88,6 +90,7 @@ class TrialSummary(BaseModel):
     output_tokens: int | None = None
     cost_usd: float | None = None
     peak_context_tokens: int | None = None
+    agent_steps: int | None = None
 
 
 class ModelPricing(BaseModel):
