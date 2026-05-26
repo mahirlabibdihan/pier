@@ -19,7 +19,7 @@ Pier is a fork. We wanted a smaller, more opinionated base to build on. On top o
 
 - **Task format:** Harbor-compatible.
 - **Environments:** `docker`, `modal`. Per-agent install specs and network allowlists are honored on both, so installed agents work under `allow_internet = false`.
-- **Agents:** `nop`, `oracle`, `claude-code`, `codex`, `gemini-cli`, `opencode`, `mini-swe-agent`. All emit augmented ATIF v1.7.
+- **Agents:** `nop`, `oracle`, `claude-code`, `codex`, `cursor-cli`, `gemini-cli`, `opencode`, `mini-swe-agent`. All emit augmented ATIF v1.7.
 - **Datasets:** local Harbor-format task directories via `-p` / `--path`.
 - **CLI:** `pier run`, `pier job`, `pier view`, `pier critique run`, `pier check` / `pier analyze` (vendored from Harbor)
 
@@ -102,6 +102,18 @@ A few things we've learned plumbing this through Respan and OpenRouter:
     GOOGLE_GENERATIVE_AI_API_KEY: ${RESPAN_API_KEY}
     GEMINI_API_BASE: https://endpoint.respan.ai/api/google/vertexai/v1beta
     GOOGLE_GEMINI_BASE_URL: https://endpoint.respan.ai/api/google/vertexai/
+```
+
+**Cursor CLI** uses the installed `cursor-agent` binary, so it fits the same
+inside-the-sandbox path as Claude Code, Codex, Gemini CLI, and OpenCode. Use
+`cursor/composer-2.5` for Composer 2.5 trial metadata and pass `CURSOR_API_KEY`
+through your env file.
+
+```yaml
+- name: cursor-cli
+  model_name: cursor/composer-2.5
+  env:
+    CURSOR_API_KEY: ${CURSOR_API_KEY}
 ```
 
 **OpenCode** uses `opencode_config` to add unknown providers or override known ones. To redirect Google to Respan, override just `options.baseURL`; to add a fully custom provider, use `opencode_config.provider.<name>` with the npm package, options, and models.

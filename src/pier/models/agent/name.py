@@ -6,6 +6,7 @@ class AgentName(str, Enum):
     NOP = "nop"
     CLAUDE_CODE = "claude-code"
     CODEX = "codex"
+    CURSOR_CLI = "cursor-cli"
     GEMINI_CLI = "gemini-cli"
     MINI_SWE_AGENT = "mini-swe-agent"
     SWE_AGENT = "swe-agent"
