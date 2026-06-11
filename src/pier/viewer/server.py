@@ -1298,9 +1298,13 @@ def _register_job_endpoints(app: FastAPI, jobs_dir: Path) -> None:
                     )
                 )
 
-        # Sort by started_at descending (most recent first), jobs without started_at go last
+        # Sort by started_at descending (most recent first), jobs without started_at go last.
+        # Match the existing date-filter path: strip tzinfo when persisted jobs mix forms.
         summaries.sort(
-            key=lambda s: (s.started_at is not None, s.started_at),
+            key=lambda s: (
+                s.started_at is not None,
+                s.started_at.replace(tzinfo=None) if s.started_at is not None else None,
+            ),
             reverse=True,
         )
         return summaries
