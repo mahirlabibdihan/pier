@@ -484,6 +484,7 @@ export interface JobHeatmapRow {
   agent_name: string | null;
   model_provider: string | null;
   model_name: string | null;
+  reasoning_effort?: string | null;
 }
 
 export interface JobHeatmapColumn {

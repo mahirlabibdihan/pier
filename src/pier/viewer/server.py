@@ -143,6 +143,34 @@ def _agent_step_count_from_result(result: TrialResult) -> int | None:
     return result.agent_step_count()
 
 
+def _extract_reasoning_effort(result: TrialResult) -> str | None:
+    """Best-effort recovery of a trial's reasoning/thinking effort.
+
+    Effort is not a first-class field; it lives inside the agent's free-form
+    ``kwargs``, with agent/provider-specific shapes:
+      - top-level ``reasoning_effort`` (claude-code, codex, gemini-cli, mini-swe
+        on Gemini)
+      - ``model_kwargs.output_config.effort`` (mini-swe on Anthropic)
+      - ``model_kwargs.reasoning.effort`` (mini-swe on OpenAI)
+    Only explicitly configured efforts are surfaced; an unset value reports as
+    missing rather than inferring agent-specific defaults.
+    """
+    kwargs = result.config.agent.kwargs or {}
+
+    value = kwargs.get("reasoning_effort")
+    if value is not None:
+        return str(value)
+
+    model_kwargs = kwargs.get("model_kwargs")
+    if isinstance(model_kwargs, dict):
+        for outer_key in ("output_config", "reasoning"):
+            outer = model_kwargs.get(outer_key)
+            if isinstance(outer, dict) and outer.get("effort") is not None:
+                return str(outer["effort"])
+
+    return None
+
+
 # Maximum file size to serve (1MB)
 MAX_FILE_SIZE = 1024 * 1024
 
@@ -2394,6 +2422,7 @@ def _register_job_endpoints(app: FastAPI, jobs_dir: Path) -> None:
             agent_name: str | None,
             model_provider: str | None,
             model_name: str | None,
+            reasoning_effort: str | None,
         ) -> JobHeatmapRow:
             full_model = full_model_name(model_provider, model_name)
             key_prefix = f"job::{current_job_name}::" if include_job_in_rows else ""
@@ -2407,25 +2436,38 @@ def _register_job_endpoints(app: FastAPI, jobs_dir: Path) -> None:
                     job_name=current_job_name if include_job_in_rows else None,
                     agent_name=agent_name,
                 )
+            # Effort meaningfully changes results, so it must be part of the row
+            # identity (otherwise different effort levels of the same model would
+            # be averaged together). The agent view stays effort-agnostic.
+            effort_suffix = f" [{reasoning_effort}]" if reasoning_effort else ""
+            effort_key = f"::effort::{reasoning_effort or ''}"
             if row_by == "model":
-                key = f"{key_prefix}model::{model_provider or ''}::{model_name or ''}"
+                key = (
+                    f"{key_prefix}model::{model_provider or ''}::"
+                    f"{model_name or ''}{effort_key}"
+                )
                 label = full_model or "Unknown model"
                 return JobHeatmapRow(
                     key=key,
-                    label=f"{label_prefix}{label}",
+                    label=f"{label_prefix}{label}{effort_suffix}",
                     job_name=current_job_name if include_job_in_rows else None,
                     model_provider=model_provider,
                     model_name=model_name,
+                    reasoning_effort=reasoning_effort,
                 )
-            key = f"{key_prefix}config::{agent_name or ''}::{model_provider or ''}::{model_name or ''}"
+            key = (
+                f"{key_prefix}config::{agent_name or ''}::{model_provider or ''}::"
+                f"{model_name or ''}{effort_key}"
+            )
             parts = [p for p in [agent_name, full_model] if p]
             return JobHeatmapRow(
                 key=key,
-                label=f"{label_prefix}{' / '.join(parts) or 'Unknown config'}",
+                label=f"{label_prefix}{' / '.join(parts) or 'Unknown config'}{effort_suffix}",
                 job_name=current_job_name if include_job_in_rows else None,
                 agent_name=agent_name,
                 model_provider=model_provider,
                 model_name=model_name,
+                reasoning_effort=reasoning_effort,
             )
 
         def column_for(source_name: str | None, task_name: str) -> JobHeatmapColumn:
@@ -2493,7 +2535,14 @@ def _register_job_endpoints(app: FastAPI, jobs_dir: Path) -> None:
                     if trial_reward is None or trial_reward < 1:
                         continue
 
-                row = row_for(job_name, agent_name, model_provider, model_name)
+                reasoning_effort = _extract_reasoning_effort(result)
+                row = row_for(
+                    job_name,
+                    agent_name,
+                    model_provider,
+                    model_name,
+                    reasoning_effort,
+                )
                 column = column_for(source_name, task_name)
                 rows[row.key] = row
                 columns[column.key] = column

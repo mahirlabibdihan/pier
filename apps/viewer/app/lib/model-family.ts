@@ -119,3 +119,32 @@ export function sortByFamilyRank<T>(
     return labelOf(a).localeCompare(labelOf(b));
   });
 }
+
+/**
+ * Reasoning-effort levels in ascending order (least → most compute). Used
+ * to order a model's effort variants and to pick the highest as the "lead"
+ * point that carries the model name in charts.
+ */
+export const EFFORT_ORDER = [
+  "none",
+  "minimal",
+  "low",
+  "medium",
+  "high",
+  "xhigh",
+  "max",
+] as const;
+
+/**
+ * Rank a reasoning effort for sorting (higher = more compute). A null or
+ * empty effort ranks below every named level; an unrecognised name ranks
+ * above all known levels, so a newly introduced (presumably higher) effort
+ * still reads as "more" rather than silently collapsing into the middle.
+ */
+export function effortRank(effort: string | null | undefined): number {
+  if (!effort) return -1;
+  const idx = (EFFORT_ORDER as readonly string[]).indexOf(
+    effort.toLowerCase()
+  );
+  return idx === -1 ? EFFORT_ORDER.length : idx;
+}

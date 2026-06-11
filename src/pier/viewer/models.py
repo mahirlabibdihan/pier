@@ -331,6 +331,7 @@ class JobHeatmapRow(BaseModel):
     agent_name: str | None = None
     model_provider: str | None = None
     model_name: str | None = None
+    reasoning_effort: str | None = None
 
 
 class JobHeatmapColumn(BaseModel):
