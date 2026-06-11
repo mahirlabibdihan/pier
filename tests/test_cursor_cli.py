@@ -37,6 +37,30 @@ def test_cursor_cli_reports_cursor_domains(tmp_path: Path):
     assert {"cursor.com", "api2.cursor.sh", ".cursor.sh"} <= domains
 
 
+def test_cursor_cli_no_internet_config_allows_coding_tools_but_not_web_fetch():
+    config = CursorCli._no_internet_cli_config()
+
+    assert config["permissions"]["allow"] == [
+        "Shell(**)",
+        "Read(**)",
+        "Write(**)",
+        "Mcp(**)",
+    ]
+    assert config["approvalMode"] == "allowlist"
+    assert config["webFetchDomainAllowlist"] == []
+
+
+def test_cursor_cli_no_internet_config_command_writes_home_config(tmp_path: Path):
+    agent = CursorCli(logs_dir=tmp_path, model_name="cursor/composer-2.5")
+
+    command = agent._build_no_internet_cli_config_command()
+
+    assert "mkdir -p ~/.cursor" in command
+    assert "> ~/.cursor/cli-config.json" in command
+    assert "Shell(**)" in command
+    assert "webFetchDomainAllowlist" in command
+
+
 def test_cursor_cli_converts_stream_json_to_atif(tmp_path: Path):
     agent = CursorCli(logs_dir=tmp_path, model_name="cursor/composer-2.5")
     events = [

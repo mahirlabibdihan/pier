@@ -660,6 +660,30 @@ class CursorCli(BaseInstalledAgent):
             "fi"
         )
 
+    @staticmethod
+    def _no_internet_cli_config() -> dict[str, Any]:
+        return {
+            "permissions": {
+                "allow": [
+                    "Shell(**)",
+                    "Read(**)",
+                    "Write(**)",
+                    "Mcp(**)",
+                ],
+                "deny": [],
+            },
+            "approvalMode": "allowlist",
+            "webFetchDomainAllowlist": [],
+        }
+
+    def _build_no_internet_cli_config_command(self) -> str:
+        config = shlex.quote(json.dumps(self._no_internet_cli_config(), indent=2))
+        return f"mkdir -p ~/.cursor && printf '%s\n' {config} > ~/.cursor/cli-config.json"
+
+    @staticmethod
+    def _should_disable_web_tools(environment: BaseEnvironment) -> bool:
+        return not environment.task_env_config.allow_internet
+
     @with_prompt_template
     async def run(
         self,
@@ -680,7 +704,9 @@ class CursorCli(BaseInstalledAgent):
                 "Set it in the process environment or pass --env-file .env."
             )
 
+        disable_web_tools = self._should_disable_web_tools(environment)
         for setup_command in (
+            self._build_no_internet_cli_config_command() if disable_web_tools else None,
             self._build_register_mcp_servers_command(),
             self._build_register_skills_command(),
         ):
@@ -691,12 +717,13 @@ class CursorCli(BaseInstalledAgent):
         extra_flags = f"{cli_flags} " if cli_flags else ""
         escaped_instruction = shlex.quote(instruction)
         escaped_model = shlex.quote(model)
+        permission_flag = "--trust" if disable_web_tools else "--force"
 
         await self.exec_as_agent(
             environment,
             command=(
                 'export PATH="$HOME/.local/bin:$PATH"; '
-                "cursor-agent --force --print --output-format=stream-json "
+                f"cursor-agent {permission_flag} --print --output-format=stream-json "
                 f"{extra_flags}--model {escaped_model} -- {escaped_instruction} "
                 f"2>&1 | stdbuf -oL tee /logs/agent/{self._OUTPUT_FILENAME}"
             ),
