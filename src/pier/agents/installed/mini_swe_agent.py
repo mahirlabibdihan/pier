@@ -9,8 +9,8 @@ import yaml
 
 from pier.agents.installed.base import (
     BaseInstalledAgent,
-    with_prompt_template,
     CliFlag,
+    with_prompt_template,
 )
 from pier.agents.network import allowlist_from_urls, collect_url_values
 from pier.agents.utils import get_api_key_var_names_from_model_name
@@ -30,12 +30,12 @@ from pier.models.trajectories import (
     Trajectory,
 )
 from pier.models.trial.paths import EnvironmentPaths
+from pier.utils.logger import logger
 from pier.utils.trajectory_metrics import (
     extra_with_context_metrics,
     peak_context_tokens_from_steps,
     populate_context_from_final_metrics,
 )
-from pier.utils.logger import logger
 
 
 def _normalize_content(raw_content: Any) -> str:
@@ -158,9 +158,7 @@ def _build_step_metrics(
     )
 
 
-def _parse_tool_calls(
-    message: dict[str, Any], step_id: int
-) -> list[ToolCall] | None:
+def _parse_tool_calls(message: dict[str, Any], step_id: int) -> list[ToolCall] | None:
     """Parse tool calls from an assistant message into ATIF ToolCall objects."""
     message_tool_calls = message.get("tool_calls")
     if not message_tool_calls:
@@ -340,7 +338,9 @@ def convert_mini_swe_agent_to_atif(
             usage.get("completion_tokens") or usage.get("output_tokens") or 0
         )
         prompt_tokens_details = (
-            usage.get("prompt_tokens_details") or usage.get("input_tokens_details") or {}
+            usage.get("prompt_tokens_details")
+            or usage.get("input_tokens_details")
+            or {}
         )
         if not isinstance(prompt_tokens_details, dict):
             prompt_tokens_details = {}
@@ -617,13 +617,16 @@ class MiniSweAgent(BaseInstalledAgent):
         packages = list(self._extra_python_packages)
         if self.model_name and self.model_name.startswith("vertex_ai/"):
             packages.append("google-auth")
+            packages.append("google-cloud-aiplatform")
         return list(dict.fromkeys(packages))
 
     def install_spec(self) -> AgentInstallSpec:
         version_spec = f"=={self._version}" if self._version else ""
         install_extra_packages = ""
         if self._install_python_packages:
-            packages = " ".join(shlex.quote(pkg) for pkg in self._install_python_packages)
+            packages = " ".join(
+                shlex.quote(pkg) for pkg in self._install_python_packages
+            )
             install_extra_packages = (
                 f'uv pip install --python "$python_bin" {packages}\n'
             )
@@ -781,8 +784,7 @@ mini-swe-agent --help
 
         if self._set_cache_control:
             config_flags += (
-                f"-c model.set_cache_control="
-                f"{shlex.quote(self._set_cache_control)} "
+                f"-c model.set_cache_control={shlex.quote(self._set_cache_control)} "
             )
 
         config_flags += self._model_kwargs_config_flags()
