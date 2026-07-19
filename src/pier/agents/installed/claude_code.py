@@ -1208,6 +1208,18 @@ class ClaudeCode(BaseInstalledAgent):
             return True
         return False
 
+    @staticmethod
+    def _filter_auth_env(env: dict[str, str | None]) -> dict[str, str]:
+        """Remove unused credentials while preserving gateway auth semantics."""
+        gateway_token_mode = bool(
+            env.get("ANTHROPIC_BASE_URL") and env.get("ANTHROPIC_AUTH_TOKEN")
+        )
+        filtered = {key: value for key, value in env.items() if value}
+        if gateway_token_mode:
+            # Prevent an inherited Anthropic credential from overriding the gateway token.
+            filtered["ANTHROPIC_API_KEY"] = ""
+        return filtered
+
     @with_prompt_template
     async def run(
         self, instruction: str, environment: BaseEnvironment, context: AgentContext
@@ -1264,9 +1276,9 @@ class ClaudeCode(BaseInstalledAgent):
 
         env = self.build_process_env(env, include_resolved_env=False)
 
-        # Remove empty auth credentials to allow Claude CLI to prioritize the available method
-        # When both are empty, Claude CLI will fail with a clear authentication error
-        env = {k: v for k, v in env.items() if v}
+        # Anthropic-compatible gateways require ANTHROPIC_API_KEY to be explicitly empty
+        # when ANTHROPIC_AUTH_TOKEN supplies the gateway credential.
+        env = self._filter_auth_env(env)
 
         # Handle model name based on whether using custom API base or Bedrock
         if self.model_name:
