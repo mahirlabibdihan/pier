@@ -160,7 +160,7 @@ class DockerEnvironment(BaseEnvironment):
         task_env_config: EnvironmentConfig,
         keep_containers: bool = False,
         mounts_json: list[ServiceVolumeConfig] | None = None,
-        mount_verifier_logs: bool = True,
+        mount_logs: bool = True,
         *args,
         **kwargs,
     ):
@@ -174,7 +174,7 @@ class DockerEnvironment(BaseEnvironment):
         )
 
         self._keep_containers = keep_containers
-        self._mount_verifier_logs = mount_verifier_logs
+        self._mount_logs = mount_logs
         self._is_windows_container = task_env_config.os == TaskOS.WINDOWS
         self._env_paths = (
             EnvironmentPaths.for_windows()
@@ -195,8 +195,8 @@ class DockerEnvironment(BaseEnvironment):
             self._windows_container_name: str | None = None
             self._platform = UnixOps(self)
 
-        self._mounts_json = (
-            mounts_json if mounts_json is not None else self._default_log_mounts()
+        self._mounts_json = mounts_json if mounts_json is not None else (
+            self._default_log_mounts() if self._mount_logs else []
         )
         self._mounts_compose_path: Path | None = None
         self._resources_compose_temp_dir: tempfile.TemporaryDirectory | None = None
@@ -254,30 +254,23 @@ class DockerEnvironment(BaseEnvironment):
         return self._env_paths
 
     def _default_log_mounts(self) -> list[ServiceVolumeConfig]:
-        mounts: list[ServiceVolumeConfig] = []
-        if self._mount_verifier_logs:
-            mounts.append(
-                {
-                    "type": "bind",
-                    "source": self.trial_paths.verifier_dir.resolve().as_posix(),
-                    "target": str(self._env_paths.verifier_dir),
-                }
-            )
-        mounts.extend(
-            [
-                {
-                    "type": "bind",
-                    "source": self.trial_paths.agent_dir.resolve().as_posix(),
-                    "target": str(self._env_paths.agent_dir),
-                },
-                {
-                    "type": "bind",
-                    "source": self.trial_paths.artifacts_dir.resolve().as_posix(),
-                    "target": str(self._env_paths.artifacts_dir),
-                },
-            ]
-        )
-        return mounts
+        return [
+            {
+                "type": "bind",
+                "source": self.trial_paths.verifier_dir.resolve().as_posix(),
+                "target": str(self._env_paths.verifier_dir),
+            },
+            {
+                "type": "bind",
+                "source": self.trial_paths.agent_dir.resolve().as_posix(),
+                "target": str(self._env_paths.agent_dir),
+            },
+            {
+                "type": "bind",
+                "source": self.trial_paths.artifacts_dir.resolve().as_posix(),
+                "target": str(self._env_paths.artifacts_dir),
+            },
+        ]
 
     @property
     def _uses_compose(self) -> bool:
@@ -290,7 +283,7 @@ class DockerEnvironment(BaseEnvironment):
             filtered_egress=True,
             preinstall_agents=True,
             windows=True,
-            mounted=True,
+            mounted=self._mount_logs,
             docker_compose=True,
         )
 
@@ -669,7 +662,10 @@ class DockerEnvironment(BaseEnvironment):
         # not use Unix file permissions.)
         if not self._is_windows_container:
             await self.exec(
-                f"chmod 777 {self._env_paths.agent_dir} {self._env_paths.verifier_dir}"
+                f"mkdir -p {self._env_paths.agent_dir} {self._env_paths.verifier_dir} "
+                f"{self._env_paths.artifacts_dir} && chmod 777 "
+                f"{self._env_paths.agent_dir} {self._env_paths.verifier_dir} "
+                f"{self._env_paths.artifacts_dir}"
             )
 
     async def prepare_logs_for_host(self) -> None:

@@ -60,7 +60,7 @@ class TrialExecution:
         agent_setup_timeout_multiplier: float | None,
         environment_build_timeout_multiplier: float | None,
         default_agent_setup_timeout_sec: float,
-        mount_verifier_logs: bool = True,
+        mount_logs: bool = True,
     ) -> "TrialExecution":
         agent_timeout_sec = cls._resolve_agent_timeout(
             agent_config=agent_config,
@@ -82,7 +82,7 @@ class TrialExecution:
             trial_paths=trial_paths,
             logger=logger,
             agent=agent,
-            mount_verifier_logs=mount_verifier_logs,
+            mount_logs=mount_logs,
         )
         return cls(
             task=task,
@@ -192,11 +192,11 @@ class TrialExecution:
         trial_paths: TrialPaths,
         logger: Logger,
         agent,
-        mount_verifier_logs: bool = True,
+        mount_logs: bool = True,
     ) -> BaseEnvironment:
         environment_kwargs: dict[str, Any] = {}
         if environment_config.type == EnvironmentType.DOCKER:
-            environment_kwargs['mount_verifier_logs'] = mount_verifier_logs
+            environment_kwargs['mount_logs'] = mount_logs
 
         return EnvironmentFactory.create_environment_from_config(
             config=environment_config,

@@ -1358,7 +1358,8 @@ class ClaudeCode(BaseInstalledAgent):
                 f"--permission-mode=bypassPermissions "
                 f"{extra_flags}"
                 f"--print -- {escaped_instruction} 2>&1 </dev/null | tee "
-                f"/logs/agent/claude-code.txt"
+                f"/logs/agent/claude-code.txt; "
+                "git diff --binary > /logs/agent/model.patch"
             ),
             env=env,
         )
