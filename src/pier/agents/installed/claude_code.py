@@ -1233,8 +1233,9 @@ class ClaudeCode(BaseInstalledAgent):
 You are a coding agent working directly in the current repository. Inspect the
 repository, implement the requested fix by editing source files, and run
 relevant tests when practical. Do not only explain the issue, offer options,
-or ask a follow-up question. Your result is evaluated solely from `git diff`,
-so make the required code changes before you finish.
+or ask a follow-up question. Do not use WebSearch or WebFetch: begin by using
+the repository's local files and terminal tools. Your result is evaluated
+solely from `git diff`, so make the required code changes before you finish.
 """
         escaped_instruction = shlex.quote(instruction + implementation_requirement)
 
