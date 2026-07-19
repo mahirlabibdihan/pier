@@ -164,6 +164,9 @@ class DockerEnvironment(BaseEnvironment):
         *args,
         **kwargs,
     ):
+        # BaseEnvironment validates capabilities during super().__init__(), so
+        # this must exist before the base constructor reads self.capabilities.
+        self._mount_logs = mount_logs
         super().__init__(
             environment_dir=environment_dir,
             environment_name=environment_name,
@@ -174,7 +177,6 @@ class DockerEnvironment(BaseEnvironment):
         )
 
         self._keep_containers = keep_containers
-        self._mount_logs = mount_logs
         self._is_windows_container = task_env_config.os == TaskOS.WINDOWS
         self._env_paths = (
             EnvironmentPaths.for_windows()
