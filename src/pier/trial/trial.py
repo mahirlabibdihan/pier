@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import os
 import shlex
 import shutil
 import traceback
@@ -184,6 +185,10 @@ class Trial:
             )
 
         self.config = config
+        # Bind mounts are unsuitable on some network filesystems. When this
+        # is disabled, DockerEnvironment copies /logs back with `docker cp`;
+        # artifacts still move from agent to verifier through Pier's handler.
+        self._mount_logs = os.environ.get("PIER_MOUNT_LOGS", "1").strip() != "0"
         self.job_id = config.job_id
         self._are_agent_logs_downloaded = False
         self._are_artifacts_collected = False
@@ -212,7 +217,7 @@ class Trial:
             agent_setup_timeout_multiplier=config.agent_setup_timeout_multiplier,
             environment_build_timeout_multiplier=config.environment_build_timeout_multiplier,
             default_agent_setup_timeout_sec=self._AGENT_SETUP_TIMEOUT_SEC,
-            mount_logs=not config.verifier.disable,
+            mount_logs=self._mount_logs,
         )
         self._agent = self._execution.agent
         self._environment = self._execution.environment
@@ -402,7 +407,10 @@ class Trial:
             trial_paths=self._trial_paths,
             task_env_config=env_config,
             logger=self._logger,
-            mounts_json=self._verifier_env_mounts(env_config),
+            mounts_json=(
+                self._verifier_env_mounts(env_config) if self._mount_logs else []
+            ),
+            mount_logs=self._mount_logs,
             agent_install_spec=None,
             network_allowlist=None,
             default_user=(
