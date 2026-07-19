@@ -160,6 +160,7 @@ class DockerEnvironment(BaseEnvironment):
         task_env_config: EnvironmentConfig,
         keep_containers: bool = False,
         mounts_json: list[ServiceVolumeConfig] | None = None,
+        mount_verifier_logs: bool = True,
         *args,
         **kwargs,
     ):
@@ -173,6 +174,7 @@ class DockerEnvironment(BaseEnvironment):
         )
 
         self._keep_containers = keep_containers
+        self._mount_verifier_logs = mount_verifier_logs
         self._is_windows_container = task_env_config.os == TaskOS.WINDOWS
         self._env_paths = (
             EnvironmentPaths.for_windows()
@@ -252,23 +254,30 @@ class DockerEnvironment(BaseEnvironment):
         return self._env_paths
 
     def _default_log_mounts(self) -> list[ServiceVolumeConfig]:
-        return [
-            {
-                "type": "bind",
-                "source": self.trial_paths.verifier_dir.resolve().as_posix(),
-                "target": str(self._env_paths.verifier_dir),
-            },
-            {
-                "type": "bind",
-                "source": self.trial_paths.agent_dir.resolve().as_posix(),
-                "target": str(self._env_paths.agent_dir),
-            },
-            {
-                "type": "bind",
-                "source": self.trial_paths.artifacts_dir.resolve().as_posix(),
-                "target": str(self._env_paths.artifacts_dir),
-            },
-        ]
+        mounts: list[ServiceVolumeConfig] = []
+        if self._mount_verifier_logs:
+            mounts.append(
+                {
+                    "type": "bind",
+                    "source": self.trial_paths.verifier_dir.resolve().as_posix(),
+                    "target": str(self._env_paths.verifier_dir),
+                }
+            )
+        mounts.extend(
+            [
+                {
+                    "type": "bind",
+                    "source": self.trial_paths.agent_dir.resolve().as_posix(),
+                    "target": str(self._env_paths.agent_dir),
+                },
+                {
+                    "type": "bind",
+                    "source": self.trial_paths.artifacts_dir.resolve().as_posix(),
+                    "target": str(self._env_paths.artifacts_dir),
+                },
+            ]
+        )
+        return mounts
 
     @property
     def _uses_compose(self) -> bool:

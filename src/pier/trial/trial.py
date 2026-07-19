@@ -212,6 +212,7 @@ class Trial:
             agent_setup_timeout_multiplier=config.agent_setup_timeout_multiplier,
             environment_build_timeout_multiplier=config.environment_build_timeout_multiplier,
             default_agent_setup_timeout_sec=self._AGENT_SETUP_TIMEOUT_SEC,
+            mount_verifier_logs=not config.verifier.disable,
         )
         self._agent = self._execution.agent
         self._environment = self._execution.environment

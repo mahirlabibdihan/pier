@@ -17,6 +17,7 @@ from pier.environments.base import BaseEnvironment
 from pier.environments.factory import EnvironmentFactory
 from pier.models.agent.context import AgentContext
 from pier.models.agent.name import AgentName
+from pier.models.environment_type import EnvironmentType
 from pier.models.task.config import TaskOS
 from pier.models.task.task import Task
 from pier.models.trial.config import AgentConfig, EnvironmentConfig
@@ -59,6 +60,7 @@ class TrialExecution:
         agent_setup_timeout_multiplier: float | None,
         environment_build_timeout_multiplier: float | None,
         default_agent_setup_timeout_sec: float,
+        mount_verifier_logs: bool = True,
     ) -> "TrialExecution":
         agent_timeout_sec = cls._resolve_agent_timeout(
             agent_config=agent_config,
@@ -80,6 +82,7 @@ class TrialExecution:
             trial_paths=trial_paths,
             logger=logger,
             agent=agent,
+            mount_verifier_logs=mount_verifier_logs,
         )
         return cls(
             task=task,
@@ -189,7 +192,12 @@ class TrialExecution:
         trial_paths: TrialPaths,
         logger: Logger,
         agent,
+        mount_verifier_logs: bool = True,
     ) -> BaseEnvironment:
+        environment_kwargs: dict[str, Any] = {}
+        if environment_config.type == EnvironmentType.DOCKER:
+            environment_kwargs['mount_verifier_logs'] = mount_verifier_logs
+
         return EnvironmentFactory.create_environment_from_config(
             config=environment_config,
             environment_dir=task.paths.environment_dir,
@@ -201,6 +209,7 @@ class TrialExecution:
             agent_install_spec=agent.install_spec(),
             network_allowlist=agent.network_allowlist(),
             default_user=task.config.agent.user,
+            **environment_kwargs,
         )
 
     @retry(
