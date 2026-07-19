@@ -9,6 +9,8 @@ class AgentName(str, Enum):
     CURSOR_CLI = "cursor-cli"
     GEMINI_CLI = "gemini-cli"
     MINI_SWE_AGENT = "mini-swe-agent"
+    LOCAL_MINI_SWE_AGENT = "local-mini-swe-agent"
+    TREE_SEARCH_MINI_SWE_AGENT = "tree-search-mini-swe-agent"
     SWE_AGENT = "swe-agent"
     OPENCODE = "opencode"
 

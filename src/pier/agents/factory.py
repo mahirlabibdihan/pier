@@ -7,6 +7,10 @@ from pier.agents.installed.codex import Codex
 from pier.agents.installed.cursor_cli import CursorCli
 from pier.agents.installed.gemini_cli import GeminiCli
 from pier.agents.installed.mini_swe_agent import MiniSweAgent
+from pier.agents.installed.local_mini_swe_agent import (
+    LocalMiniSweAgent,
+    TreeSearchMiniSweAgent,
+)
 from pier.agents.installed.opencode import OpenCode
 from pier.agents.nop import NopAgent
 from pier.agents.oracle import OracleAgent
@@ -24,6 +28,8 @@ class AgentFactory:
         CursorCli,
         GeminiCli,
         MiniSweAgent,
+        LocalMiniSweAgent,
+        TreeSearchMiniSweAgent,
         OpenCode,
     ]
     _AGENT_MAP: dict[AgentName, type[BaseAgent]] = {
