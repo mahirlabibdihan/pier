@@ -1224,7 +1224,19 @@ class ClaudeCode(BaseInstalledAgent):
     async def run(
         self, instruction: str, environment: BaseEnvironment, context: AgentContext
     ) -> None:
-        escaped_instruction = shlex.quote(instruction)
+        # Some OpenAI-compatible models served through the Anthropic protocol can
+        # otherwise answer the issue description conversationally instead of
+        # using Claude Code's tools.  Make the patch-producing contract explicit:
+        # SWE-bench evaluates the repository diff, not a textual answer.
+        implementation_requirement = """
+
+You are a coding agent working directly in the current repository. Inspect the
+repository, implement the requested fix by editing source files, and run
+relevant tests when practical. Do not only explain the issue, offer options,
+or ask a follow-up question. Your result is evaluated solely from `git diff`,
+so make the required code changes before you finish.
+"""
+        escaped_instruction = shlex.quote(instruction + implementation_requirement)
 
         use_bedrock = self._is_bedrock_mode()
 
