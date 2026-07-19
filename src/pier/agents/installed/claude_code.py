@@ -1367,12 +1367,17 @@ solely from `git diff`, so make the required code changes before you finish.
             environment,
             command=(
                 'export PATH="$HOME/.local/bin:$PATH"; '
+                # Claude Code may commit its work.  Record the original revision
+                # so the exported patch includes both committed and uncommitted
+                # agent changes, rather than only a post-run working-tree diff.
+                'pier_agent_base_revision="$(git rev-parse HEAD)"; '
                 f"claude --verbose --output-format=stream-json "
                 f"--permission-mode=bypassPermissions "
                 f"{extra_flags}"
                 f"--print -- {escaped_instruction} 2>&1 </dev/null | tee "
                 f"/logs/agent/claude-code.txt; "
-                "git diff --binary > /logs/agent/model.patch"
+                'git diff --binary "$pier_agent_base_revision" > '
+                "/logs/agent/model.patch"
             ),
             env=env,
         )
