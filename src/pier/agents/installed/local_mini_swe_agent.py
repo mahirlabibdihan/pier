@@ -121,9 +121,9 @@ class TreeSearchMiniSweAgent(ForkMiniSweAgent):
             '. "$HOME/.local/bin/env"; '
             "python /tmp/run_tree_search.py --task-file /tmp/deep-swe-instruction.md "
             f"--model {shlex.quote(self._fork_model_name)} --cwd /app "
-            f"--output {EnvironmentPaths.agent_dir}/mini-swe-agent.trajectory.json; "
-            "cd /app; git config user.name 'DeepSWE Agent'; "
-            "git config user.email 'agent@localhost'; git add -A; "
-            "git diff --cached --quiet || git commit -m 'Agent solution'"
+            f"--output {EnvironmentPaths.agent_dir}/mini-swe-agent.trajectory.json && "
+            "cd /app && git config user.name 'DeepSWE Agent' && "
+            "git config user.email 'agent@localhost' && git add -A && "
+            "(git diff --cached --quiet || git commit -m 'Agent solution')"
         )
         await self.exec_as_agent(environment, command=command, env=self._fork_env())
