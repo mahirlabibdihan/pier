@@ -6,6 +6,9 @@ import base64
 import shlex
 from pathlib import Path
 
+import yaml
+
+from pier.agents.network import allowlist_from_urls, collect_url_values
 from pier.agents.installed.base import with_prompt_template
 from pier.agents.installed.mini_swe_agent import MiniSweAgent
 from pier.environments.base import BaseEnvironment
@@ -32,8 +35,17 @@ class ForkMiniSweAgent(MiniSweAgent):
 
     def network_allowlist(self) -> NetworkAllowlist:
         parent = super().network_allowlist()
+        config_path = (
+            Path(__file__).resolve().parents[5]
+            / "src/minisweagent/config/extra/swebench_ts.yaml"
+        )
+        config = yaml.safe_load(config_path.read_text())
+        configured_hosts = allowlist_from_urls(
+            collect_url_values(config.get("reward_model", {}))
+        ).domains
         return NetworkAllowlist(
             domains=parent.domains
+            + configured_hosts
             + [
                 "openrouter.ai",
                 "github.com",
