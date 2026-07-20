@@ -119,7 +119,8 @@ class TreeSearchMiniSweAgent(ForkMiniSweAgent):
         command = (
             f"printf %s {shlex.quote(encoded)} | base64 -d > /tmp/deep-swe-instruction.md; "
             '. "$HOME/.local/bin/env"; '
-            "python /tmp/run_tree_search.py --task-file /tmp/deep-swe-instruction.md "
+            '"$(dirname "$(readlink -f "$(command -v mini)")")/python" '
+            "/tmp/run_tree_search.py --task-file /tmp/deep-swe-instruction.md "
             f"--model {shlex.quote(self._fork_model_name)} --cwd /app "
             f"--output {EnvironmentPaths.agent_dir}/mini-swe-agent.trajectory.json && "
             "cd /app && git config user.name 'DeepSWE Agent' && "
