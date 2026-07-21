@@ -1,7 +1,10 @@
+import asyncio
 from collections import defaultdict
 
 from pier.job import Job
 from pier.models.job.config import JobConfig
+from pier.models.metric.mean import Mean
+from pier.models.trial.config import TaskConfig
 
 
 def test_resume_cleanup_preserves_critiques_metadata_dir(tmp_path):
@@ -24,4 +27,13 @@ def test_resume_cleanup_preserves_critiques_metadata_dir(tmp_path):
     assert (job_dir / ".critiques").is_dir()
     assert critiques_dir.is_dir()
     assert not incomplete_trial_dir.exists()
+
+
+def test_explicit_dataset_task_source_gets_default_metric(tmp_path):
+    task_config = TaskConfig(path=tmp_path, source="swe-bench-verified")
+
+    metrics = asyncio.run(Job._resolve_metrics(JobConfig(), [task_config]))
+
+    assert len(metrics["swe-bench-verified"]) == 1
+    assert isinstance(metrics["swe-bench-verified"][0], Mean)
 
