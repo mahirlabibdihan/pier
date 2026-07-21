@@ -37,7 +37,7 @@ class ForkMiniSweAgent(MiniSweAgent):
         parent = super().network_allowlist()
         config_path = (
             Path(__file__).resolve().parents[5]
-            / "src/minisweagent/config/extra/swebench_ts.yaml"
+            / "src/minisweagent/config/extra/swebench_ts_deepswe.yaml"
         )
         config = yaml.safe_load(config_path.read_text())
         configured_hosts = allowlist_from_urls(
@@ -133,6 +133,7 @@ class TreeSearchMiniSweAgent(ForkMiniSweAgent):
             '. "$HOME/.local/bin/env"; '
             '"$(dirname "$(readlink -f "$(command -v mini)")")/python" '
             "/tmp/run_tree_search.py --task-file /tmp/deep-swe-instruction.md "
+            "--config extra/swebench_ts_deepswe.yaml "
             f"--model {shlex.quote(self._fork_model_name)} --cwd /app "
             f"--output {EnvironmentPaths.agent_dir}/mini-swe-agent.trajectory.json && "
             "cd /app && git config user.name 'DeepSWE Agent' && "
