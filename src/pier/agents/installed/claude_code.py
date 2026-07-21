@@ -45,9 +45,16 @@ def _is_compaction_boundary(event: dict[str, Any]) -> bool:
     return event.get("type") == "system" and event.get("subtype") == "compact_boundary"
 
 
+def _model_name_or_fallback(value: Any, fallback: str | None) -> str | None:
+    """Ignore Claude Code labels for locally generated synthetic messages."""
+    if isinstance(value, str) and value and value != "<synthetic>":
+        return value
+    return fallback
+
+
 class ClaudeCode(BaseInstalledAgent):
     SUPPORTS_ATIF: bool = True
-    GATEWAY_COMPATIBLE_VERSION: str = "2.1.111"
+    GATEWAY_COMPATIBLE_VERSION: str = "2.1.215"
     memory_dir: str | None
 
     CLI_FLAGS = [
@@ -785,8 +792,8 @@ class ClaudeCode(BaseInstalledAgent):
             message = event.get("message")
             if not isinstance(message, dict):
                 continue
-            model_name = message.get("model")
-            if isinstance(model_name, str) and model_name:
+            model_name = _model_name_or_fallback(message.get("model"), None)
+            if model_name:
                 default_model_name = model_name
                 break
 
@@ -850,7 +857,9 @@ class ClaudeCode(BaseInstalledAgent):
                     extra["user_type"] = event["userType"]
                 extra["is_sidechain"] = event.get("isSidechain", False)
 
-                model_name = message.get("model") or default_model_name
+                model_name = _model_name_or_fallback(
+                    message.get("model"), default_model_name
+                )
 
                 if text or reasoning or not tool_blocks:
                     normalized_events.append(
