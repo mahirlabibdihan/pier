@@ -159,6 +159,7 @@ class DatasetConfig(BaseModel):
             for path in self.path.iterdir()
             if TaskPaths(path).is_valid(disable_verification=disable_verification)
         ]
+        task_ids.sort(key=lambda task_id: task_id.get_name())
         return [
             TaskConfig(
                 path=task_id.path,
