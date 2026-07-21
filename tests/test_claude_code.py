@@ -20,8 +20,6 @@ def test_real_model_label_is_preserved():
 def test_gateway_token_mode_preserves_empty_anthropic_api_key(tmp_path: Path):
     agent = ClaudeCode(logs_dir=tmp_path, model_name="openai/gpt-5-mini")
 
-    assert agent._version == "2.1.215"
-
     env = agent._filter_auth_env(
         {
             "ANTHROPIC_BASE_URL": "https://openrouter.ai/api",

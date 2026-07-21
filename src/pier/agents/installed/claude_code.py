@@ -54,7 +54,6 @@ def _model_name_or_fallback(value: Any, fallback: str | None) -> str | None:
 
 class ClaudeCode(BaseInstalledAgent):
     SUPPORTS_ATIF: bool = True
-    GATEWAY_COMPATIBLE_VERSION: str = "2.1.215"
     memory_dir: str | None
 
     CLI_FLAGS = [
@@ -137,10 +136,6 @@ class ClaudeCode(BaseInstalledAgent):
         **kwargs,
     ):
         self.memory_dir = memory_dir
-        # Unversioned native installs can remain indefinitely cached in task
-        # images. Pin the first Claude Code release carrying the current gateway
-        # model-selection fixes unless the caller requests another version.
-        kwargs.setdefault("version", self.GATEWAY_COMPATIBLE_VERSION)
         super().__init__(logs_dir, *args, **kwargs)
 
     def get_version_command(self) -> str | None:
@@ -1332,9 +1327,6 @@ solely from `git diff`, so make the required code changes before you finish.
             env["ANTHROPIC_DEFAULT_OPUS_MODEL"] = env["ANTHROPIC_MODEL"]
             env["ANTHROPIC_DEFAULT_HAIKU_MODEL"] = env["ANTHROPIC_MODEL"]
             env["CLAUDE_CODE_SUBAGENT_MODEL"] = env["ANTHROPIC_MODEL"]
-            env["CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS"] = (
-                self._get_env("CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS") or "1"
-            )
 
         # Disable adaptive thinking if requested
         if os.environ.get("CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING", "").strip() == "1":
