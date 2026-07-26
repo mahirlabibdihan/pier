@@ -459,7 +459,21 @@ class OpenCode(BaseInstalledAgent):
         environment: BaseEnvironment,
         context: AgentContext,
     ) -> None:
-        escaped_instruction = shlex.quote(instruction)
+        # SWE-bench evaluates the repository diff, not a conversational answer.
+        # Keep OpenCode working autonomously when a preferred validation path is
+        # unavailable instead of letting it finish by offering choices to a user.
+        implementation_requirement = """
+
+You are a coding agent working directly in the current repository. Inspect the
+repository, implement the requested fix by editing source files, and add or
+update relevant tests when appropriate. Run relevant tests when practical. If
+a test cannot run because a dependency or environment capability is missing,
+try a reasonable alternative validation and continue completing the task. Do
+not only explain the issue, offer options, or ask a follow-up question. Use the
+repository's local files and terminal tools. Your result is evaluated solely
+from `git diff`, so make all required code and test changes before you finish.
+"""
+        escaped_instruction = shlex.quote(instruction + implementation_requirement)
 
         if not self.model_name or "/" not in self.model_name:
             raise ValueError("Model name must be in the format provider/model_name")
