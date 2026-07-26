@@ -1150,6 +1150,8 @@ class Codex(BaseInstalledAgent):
                 environment,
                 command=(
                     "if [ -s ~/.nvm/nvm.sh ]; then . ~/.nvm/nvm.sh; fi; "
+                    'pier_agent_base_revision="$(git rev-parse HEAD)"; '
+                    "set -o pipefail; "
                     "codex exec "
                     "--dangerously-bypass-approvals-and-sandbox "
                     "--skip-git-repo-check "
@@ -1161,7 +1163,11 @@ class Codex(BaseInstalledAgent):
                     f"{escaped_instruction} "
                     f"2>&1 </dev/null | tee {
                         EnvironmentPaths.agent_dir / self._OUTPUT_FILENAME
-                    }"
+                    }; "
+                    "codex_status=${PIPESTATUS[0]}; "
+                    'git diff --binary "$pier_agent_base_revision" > '
+                    f"{EnvironmentPaths.agent_dir / 'model.patch'}; "
+                    'exit "$codex_status"'
                 ),
                 env=env,
             )
