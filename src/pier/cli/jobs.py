@@ -787,6 +787,7 @@ def resume(
         int | None,
         Option(
             "-n",
+            "--max-workers",
             "--n-concurrent",
             help="Number of concurrent trials to run (overrides the saved job config)",
             show_default=False,
@@ -843,7 +844,7 @@ def resume(
     config = JobConfig.model_validate_json(config_path.read_text())
     if n_concurrent_trials is not None:
         if n_concurrent_trials < 1:
-            raise ValueError("--n-concurrent must be at least 1")
+            raise ValueError("--max-workers must be at least 1")
         config.n_concurrent_trials = n_concurrent_trials
 
     from pier.environments.factory import EnvironmentFactory
