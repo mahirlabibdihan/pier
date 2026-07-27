@@ -7,6 +7,13 @@ from pier.models.metric.mean import Mean
 from pier.models.trial.config import TaskConfig
 
 
+def test_job_config_equality_ignores_resume_concurrency():
+    saved_config = JobConfig(n_concurrent_trials=4)
+    resumed_config = JobConfig(n_concurrent_trials=2)
+
+    assert saved_config == resumed_config
+
+
 def test_resume_cleanup_preserves_critiques_metadata_dir(tmp_path):
     config = JobConfig(job_name="job", jobs_dir=tmp_path)
     job_dir = tmp_path / "job"

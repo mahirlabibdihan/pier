@@ -267,6 +267,7 @@ class JobConfig(BaseModel):
         if not isinstance(other, JobConfig):
             return NotImplemented
 
-        # Exclude non-replay identity/logging fields from equality comparison.
-        exclude = {"job_name", "debug"}
+        # Exclude identity and runtime orchestration fields that do not affect
+        # the trials themselves.
+        exclude = {"job_name", "debug", "n_concurrent_trials"}
         return self.model_dump(exclude=exclude) == other.model_dump(exclude=exclude)
