@@ -119,7 +119,7 @@ class JobLock(BaseModel):
     def _canonical_payload(self) -> dict:
         payload = self.model_dump(
             mode="json",
-            exclude={"created_at", "pier", "invocation"},
+            exclude={"created_at", "pier", "invocation", "n_concurrent_trials"},
         )
         retry = payload.get("retry")
         if isinstance(retry, dict):

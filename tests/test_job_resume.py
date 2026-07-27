@@ -2,7 +2,8 @@ import asyncio
 from collections import defaultdict
 
 from pier.job import Job
-from pier.models.job.config import JobConfig
+from pier.models.job.config import JobConfig, RetryConfig
+from pier.models.job.lock import JobLock
 from pier.models.metric.mean import Mean
 from pier.models.trial.config import TaskConfig
 
@@ -12,6 +13,13 @@ def test_job_config_equality_ignores_resume_concurrency():
     resumed_config = JobConfig(n_concurrent_trials=2)
 
     assert saved_config == resumed_config
+
+
+def test_job_lock_equality_ignores_resume_concurrency():
+    saved_lock = JobLock(n_concurrent_trials=4, retry=RetryConfig())
+    resumed_lock = JobLock(n_concurrent_trials=2, retry=RetryConfig())
+
+    assert saved_lock == resumed_lock
 
 
 def test_resume_cleanup_preserves_critiques_metadata_dir(tmp_path):
