@@ -783,6 +783,15 @@ def resume(
             help="Path to the job directory containing the config.json file",
         ),
     ],
+    n_concurrent_trials: Annotated[
+        int | None,
+        Option(
+            "-n",
+            "--n-concurrent",
+            help="Number of concurrent trials to run (overrides the saved job config)",
+            show_default=False,
+        ),
+    ] = None,
     filter_error_types: Annotated[
         list[str] | None,
         Option(
@@ -832,6 +841,10 @@ def resume(
                 shutil.rmtree(trial_dir)
 
     config = JobConfig.model_validate_json(config_path.read_text())
+    if n_concurrent_trials is not None:
+        if n_concurrent_trials < 1:
+            raise ValueError("--n-concurrent must be at least 1")
+        config.n_concurrent_trials = n_concurrent_trials
 
     from pier.environments.factory import EnvironmentFactory
 
