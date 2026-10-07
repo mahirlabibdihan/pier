@@ -18,7 +18,7 @@ from pier.models.agent.network import NetworkAllowlist
 from pier.models.trial.paths import EnvironmentPaths
 
 
-REPOSITORY = "https://github.com/mahirlabibdihan/mini-swe-agent.git"
+REPOSITORY = "https://github.com/mahirlabibdihan/SWE-Xplorer.git"
 
 
 class ForkMiniSweAgent(MiniSweAgent):
